@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"crypto/aes"
 	"crypto/md5"
 	"crypto/sha256"
 	"encoding/base64"
@@ -9,6 +10,7 @@ import (
 	"encoding/gob"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/the-medium-tech/util/ecb"
 	"math/rand"
 )
 
@@ -90,4 +92,36 @@ func Gen32byteKey(data string) string {
 	hash := md5.New()
 	hash.Write([]byte(data))
 	return hex.EncodeToString(hash.Sum(nil))
+}
+
+func EncryptAES(pt, key []byte) []byte {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err.Error())
+	}
+	mode := ecb.NewECBEncrypter(block)
+	padder := ecb.NewPkcs7Padding(mode.BlockSize())
+	pt, err = padder.Pad(pt) // padd last block of plaintext if block size less than block cipher size
+	if err != nil {
+		panic(err.Error())
+	}
+	ct := make([]byte, len(pt))
+	mode.CryptBlocks(ct, pt)
+	return ct
+}
+
+func DecryptAES(ct, key []byte) []byte {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err.Error())
+	}
+	mode := ecb.NewECBDecrypter(block)
+	pt := make([]byte, len(ct))
+	mode.CryptBlocks(pt, ct)
+	padder := ecb.NewPkcs7Padding(mode.BlockSize())
+	pt, err = padder.Unpad(pt) // unpad plaintext after decryption
+	if err != nil {
+		panic(err.Error())
+	}
+	return pt
 }
