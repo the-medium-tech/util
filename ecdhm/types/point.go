@@ -89,5 +89,11 @@ func (p *PointValue) PartsCount() int {
 	defer p.mtx.RUnlock()
 
 	return p.Parts.Count(true)
+}
 
+func (p *PointValue) Serialize() []byte {
+	p.mtx.RLock()
+	defer p.mtx.RUnlock()
+
+	return append(p.X.Bytes(), p.Y.Bytes()...)
 }
